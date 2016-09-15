@@ -1,0 +1,6 @@
+fonts
+*.jpg
+*.bmp
+*.csv
+venv
+*.pyc
