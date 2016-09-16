@@ -9,14 +9,14 @@ from slugify import slugify
 # BUILD OPTIONS
 ################################################################################
 
-MODIFIER = 0.6
+MODIFIER = 1.0
 
-IMAGE_WIDTH = 1028
-IMAGE_HEIGHT = 540
-IMAGE_PADDING_TOP = 25
-IMAGE_PADDING_BOTTOM = int(153/2)
-IMAGE_PADDING_LEFT = 25
-IMAGE_PADDING_RIGHT = 25
+IMAGE_WIDTH = 1023
+IMAGE_HEIGHT = 536
+IMAGE_PADDING_TOP = 28
+IMAGE_PADDING_BOTTOM = 154
+IMAGE_PADDING_LEFT = 28
+IMAGE_PADDING_RIGHT = 28
 
 TILE_W = 7
 TILE_H = 8
@@ -102,7 +102,7 @@ def draw_image(fontSize, i, txt):
 
     draw.text((w, h), txt, (0, 0, 0), font=font)
 
-    imageFileName = "nameplates/{0:03d}-{1}.jpg".format(i, slugify(txt))
+    imageFileName = "nameplates/{0:03d}-{1}.jpg".format(i, slugify(unicode(txt)))
 
     print("Created {0} with font {1}".format(imageFileName, myFontSize))
 
@@ -113,30 +113,43 @@ def draw_image(fontSize, i, txt):
 # RUN THE THINGS
 ################################################################################
 
-shutil.rmtree("nameplates")
-os.makedirs("nameplates")
+def recreate_folder(name):
+    if os.path.exists(name):
+        shutil.rmtree(name)
 
-with open("names.csv") as f:
-    names = [name.strip() for name in f.readlines()]
+    os.makedirs(name)
 
-    maxFontSize = compute_max_fontsize(names) - 2
+def generate_nameplates():
+    recreate_folder("nameplates")
 
-    print("Max Font Size: {0}".format(maxFontSize))
+    with open("names.csv") as f:
+        names = [name.strip() for name in f.readlines()]
 
-    for i, name in enumerate(names):
-        draw_image(maxFontSize, i, name)
+        maxFontSize = compute_max_fontsize(names) - 2
 
-shutil.rmtree("merged")
-os.makedirs("merged")
+        print("Max Font Size: {0}".format(maxFontSize))
 
-montage_command = ["montage", "nameplates/*", "-geometry", "+0+0", "-tile", "{0}x{1}".format(TILE_W, TILE_H), "merged/nameplates.jpg"]
+        for i, name in enumerate(names):
+            draw_image(maxFontSize, i, name)
 
-print("Calling: " + " ".join(montage_command))
+def generate_montage():
+    recreate_folder("merged")
 
-call(montage_command)
+    montage_command = ["montage", "nameplates/*", "-geometry", "+0+0", "-tile", "{0}x{1}".format(TILE_W, TILE_H), "merged/nameplates.jpg"]
 
-mogrify_command = ["mogrify", "-flop", "-threshold", "50%", "-type", "Bilevel", "-depth", "1", "-colors", "2", "-colorspace", "Gray", "-format", "bmp", "merged/*.jpg"]
+    print("Calling: " + " ".join(montage_command))
 
-print("Calling: " + " ".join(mogrify_command))
+    call(montage_command)
 
-call(mogrify_command)
+def generate_bmp():
+    recreate_folder("merged-bmp")
+
+    mogrify_command = ["mogrify", "-flop", "-threshold", "50%", "-type", "Bilevel", "-depth", "1", "-colors", "2", "-colorspace", "Gray", "-format", "bmp", "-path", "./merged-bmp/", "merged/*.jpg"]
+
+    print("Calling: " + " ".join(mogrify_command))
+
+    call(mogrify_command)
+
+generate_nameplates()
+generate_montage()
+generate_bmp()
